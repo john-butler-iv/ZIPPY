@@ -63,6 +63,8 @@ def _draw_prefix_hull(zip_code, prefix_digits, color, draw):
 	else:
 		draw.polygon(polyPts,fill=color, outline=color)
 
+def show_region(zip_dict):
+	Image.open(zippy.get_zip_region(zip_dict) + '.png').show()
 
 def main(zips):
 	

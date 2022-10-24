@@ -1,5 +1,4 @@
 import csv
-from re import A
 
 
 zips = []
@@ -229,4 +228,3 @@ def _cmp(zip1, zip2, use_greater):
 	if use_greater:
 		return float(zip1['longitude']) > float(zip2['longitude'])
 	return float(zip1['longitude']) < float(zip2['longitude'])
-
