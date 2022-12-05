@@ -3,12 +3,12 @@ import ZIPlib as zippy
 import ZIPimg
 
 
-def game_loop(ZIP_master):
-	total_correct,total = play_one_round(ZIP_master)
+def game_loop():
+	total_correct,total = play_one_round()
 	print('you got',total_correct,'correct out of',total)
 
-def play_one_round(ZIP_master):
-	zip_random = ZIP_master[:]
+def play_one_round():
+	zip_random = zippy.get_all_ZIPs()
 	random.shuffle(zip_random)
 	total = 0
 	total_correct = 0
@@ -23,24 +23,24 @@ def play_one_round(ZIP_master):
 def play_one_zip(zip):
 	abbr_guess = ''
 	print()
-	while abbr_guess not in zippy.stAbbrMap:
+	while abbr_guess not in zippy.STATE_ABBR_MAP:
 		print('Enter "OPT" to quit playing or "?" to view all possible abbreviations')
-		abbr_guess = input('Enter the state abbreviation for ZIP code ' + zip['zip'] + ': ').upper()
+		abbr_guess = input('Enter the state abbreviation for ZIP code ' + zip.ZIP_code + ': ').upper()
 		
 		if abbr_guess == 'OPT' or abbr_guess == 'Q': return -1
 		if abbr_guess == '?':
-			zippy.print_state_abbrs()
+			print(zippy.state_abbrs_str())
 			print()
 			abbr_guess = ''
 
 
 	ret_val = 0
-	if zip['state'] == abbr_guess:
+	if zip.state_abbr == abbr_guess:
 		ret_val = 1
-		print("That's right,", zip['zip'], 'is in', zippy.get_state_name(zip),'(' + zippy.get_primary_city(zip) +') in the',zippy.get_zip_region(zip),'region!')
+		print( "That's right,", zip.ZIP_code, 'is in', zip.state_name(), '(' + zip.primary_city +') in the', zip.get_region_name(),'region!')
 	else:
 		ZIPimg.show_region(zip)
-		print("Oops,",zip['zip'],'is actually in',zippy.get_state_name(zip),'(' + zippy.get_primary_city(zip) +') in the',zippy.get_zip_region(zip),'region!')
+		print("Oops,",zip.ZIP_code, 'is actually in',zip.state_name(), '(' + zip.primary_city +') in the',zip.get_region_name(),'region!')
 	ZIPimg.show_hulls(zip)
 
 	return ret_val
@@ -49,9 +49,10 @@ def play_one_zip(zip):
 
 
 
-def main(zips):
-	game_loop(zips)
+def main():
+	game_loop()
 
 if __name__ == '__main__':
-	main(zippy.get_zip_list())
+	zippy.load_ZIPs()
+	main()
 

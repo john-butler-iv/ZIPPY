@@ -29,31 +29,27 @@ def show_prefix_hulls(prefix):
 
 
 def show_hulls(zip):
-	if 'state' in zip and (zip['state'] == 'AK' or zip['state'] == 'HI'): return
+	if zip.state_abbr == 'AK' or zip.state_abbr == 'HI': return
 
 	img = _open_img()
 	draw = ImageDraw.Draw(img, 'RGBA')
 
-	_draw_prefix_hulls(zip['zip'], draw)
+	_draw_prefix_hulls(zip.ZIP_code, draw)
 
-	if 'latitude' in zip and 'longitude' in zip:
-		real_point = real_to_img_coords(float(zip['latitude']), float(zip['longitude']))
-		draw.ellipse([(real_point[0]-1,real_point[1]-1),(real_point[0]+1,real_point[1]+1)], fill=(255,0,0,255))
+	real_point = real_to_img_coords(float(zip.latitude), float(zip.longitude))
+	draw.ellipse([(real_point[0]-1,real_point[1]-1),(real_point[0]+1,real_point[1]+1)], fill=(255,0,0,255))
 
 	img.show()
 
 
 def _draw_prefix_hulls(zip_code, draw):
-	for x in range(1,min(4,1+len(zip_code))):
-		_draw_prefix_hull(zip_code[:x],x,(255,0,0,55), draw)
+	for num_digits in range(1,min(4,1+len(zip_code))):
+		_draw_prefix_hull(zip_code[:num_digits],num_digits,(255,0,0,55), draw)
 
 
 def _draw_prefix_hull(zip_code, prefix_digits, color, draw):
-	if not zip_code[:prefix_digits] in zippy.prefixes: 
-		print(zip_code + ' is not a prefix that has been computed')
-		return
-	hull = zippy.prefixes[zip_code[:prefix_digits]]['hull']
-	polyPts = list(map(lambda zip: real_to_img_coords(float(zip['latitude']),float(zip['longitude'])),hull))
+	hull = zippy.get_hull(zip_code[:prefix_digits])
+	polyPts = list(map(lambda zip: real_to_img_coords(float(zip.latitude),float(zip.longitude)),hull))
 	if len(polyPts) == 0:
 		return
 	elif len(polyPts) == 1:
@@ -63,10 +59,10 @@ def _draw_prefix_hull(zip_code, prefix_digits, color, draw):
 	else:
 		draw.polygon(polyPts,fill=color, outline=color)
 
-def show_region(zip_dict):
-	Image.open(zippy.get_zip_region(zip_dict) + '.png').show()
+def show_region(zip):
+	Image.open(zip.get_region_name() + '.png').show()
 
-def main(zips):
+def main():
 	
 	stop = False
 
@@ -78,21 +74,22 @@ def main(zips):
 			cmd = cmd[:5]
 		if cmd.isnumeric():
 			if len(cmd) == 5:
-				zip_dict = zippy.find_zip(cmd)
-				if 'primary_city' in zip_dict and 'state' in zip_dict:
-					print('The primary city for ZIP code is ' + zip_dict['primary_city'] +', ' + zippy.get_state_name(zip_dict['state']) + '!')
+				zip = zippy.get_ZIP(cmd)
+				if zip.primary_city != '' and zip.state_name != '':
+					print('The primary city for ZIP code is ' + zip.primary_city +', ' + zip.state_name() + '!')
 				else:
 					print(cmd + ' is not a ZIP code in use today, but here\'s some information about the prefixes!')
-				show_hulls(zip_dict)
+				show_hulls(zip)
 			elif len(cmd) < 5:
 				print('Here are the ZIP codes that start with that prefix:')
 				show_prefix_hulls(cmd)
-				for zip_dict in zips:
-					if zip_dict['zip'][0:len(cmd)] == cmd:
-						print(zip_dict['zip'] + ' in ' + zip_dict['primary_city'] + ', ' + zippy.get_state_name(zip_dict['state']))
+				for zip in zippy.get_all_ZIPs():
+					if zip.ZIP_code[:len(cmd)] == cmd:
+						print(zip.ZIP_code + ' in ' + zip.primary_city + ', ' + zip.state_name())
 		else:
 			print('Letters? What do you think this is, Canada?')
 		print()
 
 if __name__=='__main__':
-	main(zippy.get_zip_list())
+	zippy.loadZIPs()
+	main()
