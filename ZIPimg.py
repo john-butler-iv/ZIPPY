@@ -65,7 +65,9 @@ def show_hulls(zip):
 
 def _draw_prefix_hulls(zip_code, draw):
 	for num_digits in range(1,min(4,1+len(zip_code))):
-		_draw_prefix_hull(zip_code[:num_digits],num_digits,(255,0,0,100), draw)
+		opacity=55
+		if num_digits >= 3: opacity = 100
+		_draw_prefix_hull(zip_code[:num_digits],num_digits,(255,0,0,opacity), draw)
 
 
 def _draw_prefix_hull(zip_code, prefix_digits, color, draw):
@@ -78,7 +80,8 @@ def _draw_prefix_hull(zip_code, prefix_digits, color, draw):
 	elif len(polyPts) == 2:
 		draw.line(polyPts,fill=color)
 	else:
-		draw.polygon(polyPts,fill=color, outline=color)
+		draw.polygon(polyPts,fill=color, outline=(255,255,0,75))
+		#draw.line(polyPts, fill=(0,0,0,175))
 
 def show_region(zip):
 	Image.open(zip.get_region_name() + '.png').show()
