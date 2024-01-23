@@ -1,4 +1,5 @@
 import csv
+import ZIPimg
 
 IRS_PREFIXES = [
     "005",  # Holtsville, NY
@@ -234,9 +235,10 @@ class __ZIPlib:
 	"""
 
     def find_ZIP(self, ZIP_code):
-        for zip in self.prefixes[ZIP_code[:3]]["ZIPs"]:
-            if zip.ZIP_code == ZIP_code:
-                return zip
+        if ZIP_code[:3] in self.prefixes: 
+            for zip in self.prefixes[ZIP_code[:3]]["ZIPs"]:
+                if zip.ZIP_code == ZIP_code:
+                    return zip
         return ZIP({"zip": ZIP_code})
 
     """
@@ -310,8 +312,6 @@ class __ZIPlib:
 
     def __group_prefixes(self, num_digits):
         for zip in self.ZIPs:
-            if zip.state_abbr == "HI" or zip.state_abbr == "AK":
-                continue  # my map doesn't show Hawaii or Alaska
             if zip.ZIP_code[:3] == "569":
                 continue  # parcel return in DC, not upper midwest
             if zip.ZIP_code == "88888":
@@ -364,6 +364,7 @@ class __ZIPlib:
         peak_i = 0
 
         for zip in sorted_zips:
+            if zip.state_abbr == 'AK' or zip.state_abbr == 'HI': continue
             if (
                 len(hull) > 0
                 and zip.latitude == hull[-1].latitude

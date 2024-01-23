@@ -1,22 +1,41 @@
+import json
 from PIL import Image,ImageDraw
 import ZIPlib as zippy
 
-LAT_Y_1 = (26,304)
-LAT_Y_2 = (48, 49)
-LONG_X_1 = (-124,65)
-LONG_X_2 = (-68,715)
+LAT_Y_1 = (49, 27)
+LAT_Y_2 = (31.334, 634)
+LONG_X_1 = (-124.217,37)
+LONG_X_2 = (-69.231,1545)
+
+HI_LAT_Y_1 = (19.492, 878)
+HI_LAT_Y_2 = (22.036, 766)
+HI_LONG_X_1 = (-159.769, 377)
+HI_LONG_X_2 = (-154.941, 555)
+
+AK_LAT_Y_2 = (61.217,818)
+AK_LAT_Y_1 = (71.299,727)
+AK_LONG_X_1 = (-149.895,221)
+AK_LONG_X_2 = (-141,272)
+
 LAT_LONG = 0
 X_Y = 1
 
 
-def real_to_img_coords(lat,long):
-	x = (long - LONG_X_1[LAT_LONG]) / (LONG_X_2[LAT_LONG] - LONG_X_1[LAT_LONG]) * (LONG_X_2[X_Y] - LONG_X_1[X_Y]) + LONG_X_1[X_Y]
-	y = (lat - LAT_Y_1[LAT_LONG]) / (LAT_Y_2[LAT_LONG] - LAT_Y_1[LAT_LONG]) * (LAT_Y_2[X_Y] - LAT_Y_1[X_Y]) + LAT_Y_1[X_Y]
+def real_to_img_coords(lat,long,state_abbr=''):
+	if state_abbr == 'AK': return __real_to_img_coords_core(lat,long,AK_LONG_X_1, AK_LONG_X_2, AK_LAT_Y_1, AK_LAT_Y_2)
+	elif state_abbr == 'HI': return __real_to_img_coords_core(lat,long,HI_LONG_X_1, HI_LONG_X_2, HI_LAT_Y_1, HI_LAT_Y_2)
+	else: return __real_to_img_coords_core(lat,long,LONG_X_1, LONG_X_2, LAT_Y_1, LAT_Y_2)
+
+def __real_to_img_coords_core(lat, long, long_x1, long_x2, lat_y1, lat_y2):
+	x = (long - long_x1[LAT_LONG]) / (long_x2[LAT_LONG] - long_x1[LAT_LONG]) * (long_x2[X_Y] - long_x1[X_Y]) + long_x1[X_Y]
+	y = (lat - lat_y1[LAT_LONG]) / (lat_y2[LAT_LONG] - lat_y1[LAT_LONG]) * (lat_y2[X_Y] - lat_y1[X_Y]) + lat_y1[X_Y]
 	return (x,y)
 
 
+
 def _open_img():
-	return Image.open('us_linear_h600.png').convert('RGB')
+	#return Image.open('us_linear_h600.png').convert('RGB')
+	return Image.open('USA-XX-242243.jpeg').convert('RGB')
 
 
 def show_prefix_hulls(prefix):
@@ -29,22 +48,24 @@ def show_prefix_hulls(prefix):
 
 
 def show_hulls(zip):
-	if zip.state_abbr == 'AK' or zip.state_abbr == 'HI': return
 
 	img = _open_img()
 	draw = ImageDraw.Draw(img, 'RGBA')
 
+
 	_draw_prefix_hulls(zip.ZIP_code, draw)
 
-	real_point = real_to_img_coords(float(zip.latitude), float(zip.longitude))
-	draw.ellipse([(real_point[0]-1,real_point[1]-1),(real_point[0]+1,real_point[1]+1)], fill=(255,0,0,255))
+	real_point = real_to_img_coords(float(zip.latitude), float(zip.longitude), zip.state_abbr)
+	draw.ellipse([(real_point[0]-1,real_point[1]-1),(real_point[0]+1,real_point[1]+1)], fill=(255,255,0,255))
+
+	draw_all_outlines(get_outlines(), draw)
 
 	img.show()
 
 
 def _draw_prefix_hulls(zip_code, draw):
 	for num_digits in range(1,min(4,1+len(zip_code))):
-		_draw_prefix_hull(zip_code[:num_digits],num_digits,(255,0,0,55), draw)
+		_draw_prefix_hull(zip_code[:num_digits],num_digits,(255,0,0,100), draw)
 
 
 def _draw_prefix_hull(zip_code, prefix_digits, color, draw):
@@ -89,6 +110,36 @@ def main():
 		else:
 			print('Letters? What do you think this is, Canada?')
 		print()
+
+def get_outlines():
+	with open('./us-state-boundaries.json') as boundariesFile:
+		outlines = json.load(boundariesFile)
+	return outlines
+
+def draw_outline(outlines,state_abbr,draw):
+	state_outline = [outline['st_asgeojson']['geometry']['coordinates'] for outline in outlines if outline['stusab']==state_abbr]
+	if(len(state_outline) == 0): return
+	for coords in state_outline[0]:
+		draw.line(coords, fill=(255,0,0,0))
+
+def draw_all_outlines(outlines,draw):
+	nonrendered_abbrs = ['VI', 'PR', 'MP', 'GU', 'AS']
+	for outline in outlines:
+		if outline['stusab'] in nonrendered_abbrs: continue
+		geometry = outline['st_asgeojson']['geometry']
+		if geometry['type'] == 'MultiPolygon':
+			for hmm in geometry['coordinates']:
+				for coords in hmm:
+					draw_polygon(coords, draw,outline['stusab'])
+		elif geometry['type'] == 'Polygon':
+			for hmm in geometry['coordinates']:
+				draw_polygon(hmm,draw,outline['stusab'])
+		else: print('unhandles geometry type: ',geometry['type'])
+
+
+def draw_polygon(coords,draw,state_abbr):
+	xys = list(map(lambda long_lat: real_to_img_coords(long_lat[1], long_lat[0],state_abbr), coords))
+	draw.line(xys, fill=(0,0,0,255))
 
 if __name__=='__main__':
 	zippy.loadZIPs()
